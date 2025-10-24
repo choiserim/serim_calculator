@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비교상품 예정 이율 및 예상 환급금 조회</title>
+    <style>
+        /* 기본 스타일 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            padding: 20px; /* 전체 패딩 */
+            box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 550px; /* 창 크기 약간 확장 */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #0056b3;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        h2 {
+            color: #007bff;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 0.95em;
+        }
+        input[type="number"], select {
+            width: calc(100% - 20px);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .combined-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .combined-input-group input, .combined-input-group > div {
+            flex: 1;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 15px;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 0; /* 내부 패딩은 섹션별로 관리 */
+            background-color: #ffffff; /* 전체 result 컨테이너 배경색 제거 */
+            border: 1px solid #ddd; /* 전체 테두리 설정 */
+            border-radius: 6px;
+            font-size: 1.2em;
+            color: #0056b3;
+            font-weight: bold;
+            text-align: left;
+            overflow: hidden; /* 섹션 테두리 병합 */
+        }
+
+        /* 예정이율 섹션 스타일 (상단) */
+        .rate-section {
+            padding: 20px;
+            background-color: #fff9e6; /* 연한 노란색 계열 */
+            border-bottom: 1px solid #ffcc00;
+        }
+        /* 환급금 섹션 스타일 (하단) */
+        .refund-section {
+            padding: 20px;
+            background-color: #e9f5ff; /* 연한 파란색 계열 */
+        }
+        
+        .result span {
+            color: #e60000;
+            font-size: 1.3em;
+        }
+        .result p {
+            margin: 8px 0;
+            line-height: 1.5;
+            border-bottom: 1px dotted #a0a0a0; /* 옅은 회색 점선 */
+            padding-bottom: 5px;
+        }
+        .result p:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .rate-section p:last-child { /* 이율 섹션의 마지막 줄은 아래 선 제거 */
+            border-bottom: none;
+        }
+        .info-text {
+            font-size: 0.85em;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            .combined-input-group {
+                flex-direction: column; /* 세로로 정렬 */
+                gap: 0; /* 간격 제거 */
+            }
+            .combined-input-group input {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>비교상품 예정 이율 및 예상 환급금 조회</h1>
+
+        <!-- 통합 계산 섹션 -->
+        <div id="refundCalculatorSection">
+            <h2>보험 정보 입력</h2>
+            
+            <div class="input-group">
+                <label for="policyType">가입 상품 선택:</label>
+                <select id="policyType">
+                    <option value="종신보험(일반)">종신보험(일반)</option>
+                    <option value="종신보험(저해약)">종신보험(저해약)</option>
+                    <option value="암보험(갱신)">암보험(갱신)</option>
+                    <option value="치아보험(갱신)">치아보험(갱신)</option>
+                    <option value="상해보험(갱신)">상해보험(갱신)</option>
+                    <option value="간편보험(갱신)">간편보험(갱신)</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label>월 납입 보험료 및 가입 연월:</label>
+                <div class="combined-input-group">
+                    <input type="number" id="monthlyPremium" placeholder="월 보험료 (원)" value="100000" min="0">
+                    <input type="number" id="policyYear" placeholder="가입 년도 (YYYY)" min="1900">
+                    <input type="number" id="policyMonth" placeholder="가입 월 (1~12)" min="1" max="12">
+                </div>
+            </div>
+            
+            <p class="info-text" id="calculatedMonths">경과 월수: 0개월</p>
+
+            <button onclick="calculateCombinedResult()">예정 이율 및 환급금 한 번에 계산하기</button>
+
+            <div class="result" id="combinedResult">
+                <!-- 결과는 JavaScript에 의해 채워집니다 -->
+            </div>
+            <p class="info-text">
+                *경과년도는 현재 일자 기준으로 자동 계산됩니다.<br>
+                *표에 없는 경과년도는 해당 상품의 최고 경과년도 환급률이 적용됩니다.
+                *2025년 가입 건은 2024년 예정이율(2.75%)이 적용됩니다.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // JavaScript 데이터 및 함수 시작
+        // ===========================================
+
+        // 현재 날짜 가져오기 (한국 시간 기준)
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth()는 0부터 시작하므로 1을 더함
+
+        // 예정이율 데이터를 JavaScript 객체로 정의 (첨부된 이미지 표 기준 + 2025년 추가)
+        const expectedRates = {
+            '~2000': 7.50, '2000': 7.50, '2001': 6.50, '2002': 5.00, '2003': 5.00,
+            '2004': 4.75, '2005': 4.25, '2006': 3.75, '2007': 4.00, '2008': 4.00,
+            '2009': 4.00, '2010': 4.00, '2011': 4.00, '2012': 3.75, '2013': 3.50,
+            '2014': 3.50, '2015': 3.25, '2016': 3.25, '2017': 3.00, '2018': 2.50,
+            '2019': 2.50, '2020': 2.50, '2021': 2.25, '2022': 2.25, '2023': 2.25,
+            '2024': 2.75, 
+            '2025': 2.75 // 요청에 따라 2025년은 2024년과 동일한 2.75% 적용
+        };
+        // 2025년 이후의 연도에 대해서도 2025년 이율을 적용하기 위한 최대 연도 설정
+        const MAX_EXPECTED_RATE_YEAR = 2025;
+
+
+        // 상품별 경과년도에 따른 환급률 데이터 (첨부된 이미지 표 기준)
+        const refundRates = {
+            '종신보험(일반)': {
+                data: {
+                    1: 0.0, 2: 26.5, 3: 46.2, 4: 54.8, 5: 61.1,
+                    6: 64.5, 7: 67.0, 8: 67.1, 9: 67.3, 10: 69.4,
+                    15: 75.0, 20: 82.0
+                },
+                maxYear: 20
+            },
+            '종신보험(저해약)': {
+                data: {
+                    1: 15.9, 2: 30.3, 3: 35.4, 4: 38.2, 5: 40.1,
+                    6: 41.6, 7: 42.7, 8: 43.3, 9: 43.8, 10: 102.0,
+                    15: 110.7
+                },
+                maxYear: 15
+            },
+            '암보험(갱신)': {
+                data: {
+                    1: 0.1, 2: 0.1, 3: 2.5, 4: 11.1, 5: 16.0,
+                    6: 18.9, 7: 20.6, 8: 18.9, 9: 17.0, 10: 14.9
+                },
+                maxYear: 10
+            },
+            '치아보험(갱신)': {
+                data: {
+                    1: 0.0, 2: 0.3, 3: 6.8, 4: 12.2, 5: 15.3,
+                    6: 17.2, 7: 18.5, 8: 17.4, 9: 16.6, 10: 16.1
+                },
+                maxYear: 10
+            },
+            '상해보험(갱신)': {
+                data: {
+                    1: 0.1, 2: 0.2, 3: 3.2, 4: 7.7, 5: 12.6,
+                    6: 15.9, 7: 17.8, 8: 16.1, 9: 14.3, 10: 12.2
+                },
+                maxYear: 10
+            },
+            '간편보험(갱신)': {
+                data: {
+                    1: 0.0, 2: 0.3, 3: 2.6, 4: 8.1, 5: 12.3,
+                    6: 15.0, 7: 16.4, 8: 14.7, 9: 12.7, 10: 10.5
+                },
+                maxYear: 10
+            }
+        };
+
+        /**
+         * 가입 연도에 해당하는 예정이율을 조회하는 내부 함수
+         * @param {number} year - 가입 년도
+         * @returns {number | null} 예정이율 (%)
+         */
+        function getExpectedRateByYear(year) {
+            if (year <= 2000) {
+                return expectedRates['~2000'];
+            } 
+            
+            // 2025년 이후는 MAX_EXPECTED_RATE_YEAR의 이율 적용 (현재 2025년 이율)
+            if (year >= MAX_EXPECTED_RATE_YEAR) {
+                return expectedRates[MAX_EXPECTED_RATE_YEAR.toString()];
+            }
+
+            const rate = expectedRates[year.toString()];
+            return rate !== undefined ? rate : null;
+        }
+
+
+        /**
+         * 보험 가입일로부터 현재까지의 경과 월수를 계산하여 표시하는 함수
+         * 이 함수는 입력 필드의 'input' 이벤트에 연결됩니다.
+         */
+        function updateCalculatedMonths() {
+            const policyYear = parseInt(document.getElementById('policyYear').value);
+            const policyMonth = parseInt(document.getElementById('policyMonth').value);
+            const calculatedMonthsElement = document.getElementById('calculatedMonths');
+
+            // 유효성 검사 및 메시지 업데이트
+            if (isNaN(policyYear) || isNaN(policyMonth) || policyYear < 1900 || policyMonth < 1 || policyMonth > 12) {
+                calculatedMonthsElement.textContent = '경과 월수: 유효한 가입 년월을 입력하세요.';
+                return;
+            }
+
+            let totalMonthsPaid;
+            if (policyYear === currentYear && policyMonth === currentMonth) {
+                totalMonthsPaid = 1; // 당월 가입은 1개월로 처리 (1회차 납부로 간주)
+            } else {
+                // 경과 월수 계산: (현재 년도 - 가입 년도) * 12 + (현재 월 - 가입 월) + 1 (현재 월 포함)
+                totalMonthsPaid = (currentYear - policyYear) * 12 + (currentMonth - policyMonth) + 1;
+            }
+            
+            if (totalMonthsPaid < 0) { // 미래 날짜 입력 방지
+                 calculatedMonthsElement.textContent = '경과 월수: 가입일이 현재보다 미래일 수 없습니다.';
+                 return;
+            }
+            
+            const elapsedYears = Math.floor(totalMonthsPaid / 12);
+            calculatedMonthsElement.textContent = `경과 월수: ${totalMonthsPaid}개월 (${elapsedYears}년차)`;
+        }
+
+
+        /**
+         * 예정 이율과 예상 환급금을 통합 계산하여 표시하는 함수
+         */
+        function calculateCombinedResult() {
+            const monthlyPremium = parseFloat(document.getElementById('monthlyPremium').value);
+            const policyYear = parseInt(document.getElementById('policyYear').value);
+            const policyMonth = parseInt(document.getElementById('policyMonth').value);
+            const policyType = document.getElementById('policyType').value;
+            const resultElement = document.getElementById('combinedResult');
+
+            let error = '';
+
+            // 유효성 검사
+            if (isNaN(monthlyPremium) || monthlyPremium <= 0) {
+                error += '유효한 월 납입 보험료를 입력해주세요.<br>';
+            }
+            if (isNaN(policyYear) || policyYear < 1900 || policyYear > currentYear + 1) {
+                error += '유효한 가입 년도를 입력해주세요.<br>';
+            }
+            if (isNaN(policyMonth) || policyMonth < 1 || policyMonth > 12) {
+                error += '유효한 가입 월을 입력해주세요.<br>';
+            }
+
+            if (error) {
+                resultElement.innerHTML = `<p style="color:red; font-size:1.1em; text-align: center;">계산 오류:</p><p style="color:red; text-align: center;">${error}</p>`;
+                return;
+            }
+
+            // 1. 예정이율 계산 및 조회
+            const expectedRate = getExpectedRateByYear(policyYear);
+            let expectedRateDisplay = expectedRate !== null ? `${expectedRate.toFixed(2)}%` : '데이터 없음';
+
+            // 2. 경과 월수 계산
+            let totalMonthsPaid;
+            if (policyYear === currentYear && policyMonth === currentMonth) {
+                totalMonthsPaid = 1;
+            } else {
+                totalMonthsPaid = (currentYear - policyYear) * 12 + (currentMonth - policyMonth) + 1;
+            }
+
+            if (totalMonthsPaid < 0) {
+                resultElement.innerHTML = '<p style="color:red; font-size:1.1em; text-align: center;">계산 오류:</p><p style="color:red; text-align: center;">가입일이 현재보다 미래일 수 없습니다.</p>';
+                return;
+            }
+
+            const totalPremiumPaid = monthlyPremium * totalMonthsPaid;
+            const elapsedYears = Math.floor(totalMonthsPaid / 12);
+
+            // 3. 예상 환급률 및 환급금 계산
+            const productData = refundRates[policyType];
+            let refundRate = 0.0;
+            
+            if (productData) {
+                if (productData.data[elapsedYears]) {
+                    refundRate = productData.data[elapsedYears];
+                } else if (elapsedYears > productData.maxYear) {
+                    refundRate = productData.data[productData.maxYear];
+                } else if (elapsedYears < productData.maxYear && totalMonthsPaid > 0) {
+                    let nearestYear = 0;
+                    const sortedYears = Object.keys(productData.data).map(Number).sort((a, b) => a - b);
+                    for (const year of sortedYears) {
+                        if (year <= elapsedYears) {
+                            nearestYear = year;
+                        } else {
+                            break;
+                        }
+                    }
+                    refundRate = productData.data[nearestYear] || 0.0;
+                }
+            }
+
+            const estimatedRefund = totalPremiumPaid * (refundRate / 100);
+
+            // 4. 결과 표시 (예정 이율 섹션과 환급금 섹션을 구분하여 삽입)
+            resultElement.innerHTML = `
+                <div class="rate-section">
+                    <p style="font-size: 1.1em; color: #cc8400;">예정 이율 조회 결과:</p>
+                    <p>가입 연도의 예정 이율: <span>${expectedRateDisplay}</span></p>
+                </div>
+                <div class="refund-section">
+                    <p style="font-size: 1.1em; color: #0056b3;">예상 환급금 계산 결과:</p>
+                    <p>총 납입 보험료: <span>${totalPremiumPaid.toLocaleString()}원</span></p>
+                    <p>경과 월수: <span>${totalMonthsPaid}개월 (${elapsedYears}년차)</span></p>
+                    <p>선택 상품: <span>${policyType}</span></p>
+                    <p>예상 환급률: <span>${refundRate.toFixed(1)}%</span></p>
+                    <p><strong>예상 환급금:</strong> <span style="font-size: 1.4em;">${estimatedRefund.toLocaleString()}원</span></p>
+                </div>
+            `;
+            
+            // 경과 월수 정보 업데이트
+            document.getElementById('calculatedMonths').textContent = `경과 월수: ${totalMonthsPaid}개월 (${elapsedYears}년차)`;
+        }
+
+        /**
+         * 페이지 로드 시 초기 설정 및 이벤트 리스너 연결
+         */
+        window.onload = function() {
+            // 경과 월수 실시간 업데이트를 위한 이벤트 리스너
+            document.getElementById('policyYear').addEventListener('input', updateCalculatedMonths);
+            document.getElementById('policyMonth').addEventListener('input', updateCalculatedMonths);
+            updateCalculatedMonths(); // 페이지 로드 시 초기 계산
+
+            // 초기 결과창 메시지 설정
+            const initialResultHTML = `
+                <div class="rate-section">
+                    <p style="font-size: 1.1em; color: #cc8400;">예정 이율 조회 결과:</p>
+                    <p>가입 연도의 예정 이율: <span>조회 대기 중</span></p>
+                </div>
+                <div class="refund-section">
+                    <p style="font-size: 1.1em; color: #0056b3;">예상 환급금 계산 결과:</p>
+                    <p>총 납입 보험료: <span>입력 대기 중</span></p>
+                    <p>경과 월수: <span>0개월 (0년차)</span></p>
+                    <p>예상 환급률: <span>0.0%</span></p>
+                    <p>예상 환급금: <span>0원</span></p>
+                </div>
+            `;
+            document.getElementById('combinedResult').innerHTML = initialResultHTML;
+        };
+        // ===========================================
+        // JavaScript 데이터 및 함수 끝
+        // ===========================================
+    </script>
+</body>
+</html>
